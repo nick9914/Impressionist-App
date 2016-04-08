@@ -10,14 +10,24 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Environment;
+import android.os.SystemClock;
+import android.support.v4.view.VelocityTrackerCompat;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.VelocityTracker;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.Toast;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.text.MessageFormat;
 import java.util.Random;
+import java.util.UUID;
+
 public class ImpressionistView extends View {
     private Rect _imageViewRect;
 
@@ -37,6 +47,10 @@ public class ImpressionistView extends View {
     private Paint _paintBorder = new Paint();
     private BrushType _brushType = BrushType.Square;
     private float _minBrushRadius = 5;
+    private VelocityTracker mVelocityTracker  = null;
+    private static double MAX_SPEED = 3000.0;
+    private static float MAX_BRUSH_SIZE = 50;
+    private static float MIN_BRUSH_SIZE = 5;
 
     public ImpressionistView(Context context) {
         super(context);
@@ -88,6 +102,7 @@ public class ImpressionistView extends View {
         if(bitmap != null) {
             _offScreenBitmap = getDrawingCache().copy(Bitmap.Config.ARGB_8888, true);
             _offScreenCanvas = new Canvas(_offScreenBitmap);
+            clearPainting();
         }
     }
 
@@ -112,7 +127,13 @@ public class ImpressionistView extends View {
      * Clears the painting
      */
     public void clearPainting(){
-        //TODO
+        if(_offScreenCanvas != null) {
+            Paint paint = new Paint();
+            paint.setColor(Color.WHITE);
+            paint.setStyle(Paint.Style.FILL);
+            _offScreenCanvas.drawRect(0, 0, this.getWidth(), this.getHeight(), paint);
+            invalidate();
+        }
     }
 
     @Override
@@ -129,6 +150,8 @@ public class ImpressionistView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent motionEvent){
+        int index = motionEvent.getActionIndex();
+        int pointerId = motionEvent.getPointerId(index);
 
         //TODO
         //Basically, the way this works is to listen for Touch Down and Touch Move events and determine where those
@@ -137,34 +160,76 @@ public class ImpressionistView extends View {
         float curTouchX = motionEvent.getX();
         float curTouchY = motionEvent.getY();
 
-        //TODO: Limit X, y range within Bitmap
+        if(!validCoordinates(Math.round(curTouchX), Math.round(curTouchY))) {
+            Log.d("ImpressionitView", "Invalid Coordinates 1");
+            return true;
+        }
         int touchedRGB = getPixelColor(Math.round(curTouchX), Math.round(curTouchY));
         _paint.setColor(touchedRGB);
-        Log.d("COLOR", "touched RGB: " + touchedRGB);
-
 
         switch(motionEvent.getAction()){
             case MotionEvent.ACTION_DOWN:
+                if(mVelocityTracker == null) {
+                    // Retrieve a new VelocityTracker object to watch the velocity of a motion.
+                    mVelocityTracker = VelocityTracker.obtain();
+                }
+                else {
+                    // Reset the velocity tracker back to its initial state.
+                    mVelocityTracker.clear();
+                }
+                // Add a user's movement to the tracker.
+                mVelocityTracker.addMovement(motionEvent);
+                break;
             case MotionEvent.ACTION_MOVE:
+                mVelocityTracker.addMovement(motionEvent);
+                // When you want to determine the velocity, call
+                // computeCurrentVelocity(). Then call getXVelocity()
+                // and getYVelocity() to retrieve the velocity for each pointer ID.
+                mVelocityTracker.computeCurrentVelocity(1000);
+                double velocity = calculateVelocity(pointerId);
+                float velocityBrushSize = calculateBrushSize(velocity);
                 int historySize = motionEvent.getHistorySize();
-                //_paint.setColor(getRandomColor());
                 for (int i = 0; i < historySize; i++) {
                     float touchX = motionEvent.getHistoricalX(i);
                     float touchY = motionEvent.getHistoricalY(i);
 
+                    if(!validCoordinates(Math.round(touchX), Math.round(touchY))) {
+                        Log.d("ImpressionitView", "Invalid Coordinates 2");
+                        return true;
+                    }
+
                     // TODO: draw to the offscreen bitmap for historical x,y points
                     _paint.setColor(getPixelColor(Math.round(touchX), Math.round(touchY)));
-                    _offScreenCanvas.drawCircle(touchX, touchY, 15, _paint);
+                    drawShape(touchX, touchY, velocityBrushSize);
                 }
                 // TODO: draw to the offscreen bitmap for current x,y point.
                 // Insert one line of code here
+                if(!validCoordinates(Math.round(motionEvent.getX()), Math.round(motionEvent.getY()))){
+                    Log.d("ImpressionitView", "Invalid Coordinates 3");
+                    return true;
+                }
                 _paint.setColor(getPixelColor(Math.round(motionEvent.getX()), Math.round(motionEvent.getY())));
-                _offScreenCanvas.drawCircle(motionEvent.getX(), motionEvent.getY(), 15, _paint);
+                drawShape(motionEvent.getX(), motionEvent.getY(), velocityBrushSize);
                 invalidate();
                 break;
         }
         return true;
     }
+
+    public double calculateVelocity (int pointerId) {
+        float xVelocity = VelocityTrackerCompat.getXVelocity(mVelocityTracker, pointerId);
+        float yVelocity = VelocityTrackerCompat.getYVelocity(mVelocityTracker, pointerId);
+        double zVelocity = Math.sqrt(Math.pow(xVelocity, 2) + Math.pow(yVelocity, 2));
+        Log.d("VELOCITY", "Velocity = " + zVelocity);
+        if(zVelocity > MAX_SPEED) {
+            return MAX_SPEED;
+        } else {
+            return zVelocity;
+        }
+
+    }
+
+
 
     /**
      * This method is useful to determine the bitmap position within the Image View. It's not needed for anything else
@@ -212,13 +277,39 @@ public class ImpressionistView extends View {
         return rect;
     }
 
+    private boolean validCoordinates(int x, int y) {
+        if(_imageViewRect == null) {
+            return false;
+        }
+        return x > _imageViewRect.left && x < _imageViewRect.right && y > _imageViewRect.top && y < _imageViewRect.bottom;
+    }
+
     private int getPixelColor(int x, int y) {
-        if(x < _imageViewRect.right && y > _imageViewRect.top && y < _imageViewRect.bottom) {
+        if(validCoordinates(x, y)) {
             return _imageViewBitmap.getPixel(x, y);
         } else {
-            return -1;
+            return Color.WHITE;
         }
+    }
 
+    private void drawShape(float x, float y, float speedBrushSize) {
+        switch (_brushType) {
+            case Circle:
+                _offScreenCanvas.drawCircle(x, y, speedBrushSize, _paint);
+                break;
+            case Square:
+                _offScreenCanvas.drawRect(x -speedBrushSize, y - speedBrushSize, x + speedBrushSize, y + speedBrushSize, _paint);
+                break;
+        }
+    }
+
+    public float calculateBrushSize(double speed) {
+        float brushSize = Math.round((MAX_BRUSH_SIZE * speed) / MAX_SPEED);
+        if(brushSize < MIN_BRUSH_SIZE) {
+            return MIN_BRUSH_SIZE;
+        } else {
+            return brushSize;
+        }
     }
 
     public void updateImageViewInfo() {
@@ -226,6 +317,19 @@ public class ImpressionistView extends View {
         Drawable imgDrawable = _imageView.getDrawable();
         if(imgDrawable != null) {
             _imageViewBitmap = ((BitmapDrawable)imgDrawable).getBitmap();
+        }
+    }
+
+    public void saveImagePainting(Context context) {
+
+        String fName = UUID.randomUUID().toString() + ".png";
+        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), fName);
+        try {
+            boolean compressSucceeded = _offScreenBitmap.compress(Bitmap.CompressFormat.PNG, 100, new FileOutputStream(file));
+            FileUtils.addImageToGallery(file.getAbsolutePath(), context);
+            Toast.makeText(context, "Saved to " + file.getAbsolutePath(), Toast.LENGTH_SHORT).show();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         }
     }
 }

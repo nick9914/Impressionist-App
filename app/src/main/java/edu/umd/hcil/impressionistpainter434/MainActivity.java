@@ -107,6 +107,7 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
                 Toast.makeText(this, "Line Splatter Brush", Toast.LENGTH_SHORT).show();
                 _impressionistView.setBrushType(BrushType.LineSplatter);
                 return true;
+
         }
         return false;
     }
@@ -179,6 +180,10 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
 
     }
 
+    public void onButtonSaveClick(View v) {
+        _impressionistView.saveImagePainting(getApplicationContext());
+    }
+
     /**
      * Called automatically when an image has been selected in the Gallery
      *
@@ -210,3 +215,7 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
         }
     }
 }
+
+
+
+/*TODO: After which button clicks should we clear image*/
