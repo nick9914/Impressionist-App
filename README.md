@@ -1,7 +1,9 @@
 # Impressionist-App
+Impressionist Painter Android app created for CMSC434 class
 
-## Initial Commit
 ### Screen Shots
-<img src="https://cloud.githubusercontent.com/assets/6146961/14271224/b6fe1782-fac4-11e5-9655-6d81c15fec6c.png" alt="V1 Screen Shot">
-### Functionality
-Only cirlce paint brush implemented. 
+<img src="https://cloud.githubusercontent.com/assets/6146961/14401604/b7be6adc-fde4-11e5-9acb-bbb0836996e8.png" alt="sc_1">
+<img src="https://cloud.githubusercontent.com/assets/6146961/14401602/af3a8fd0-fde4-11e5-86e6-c34f23c11209.png" alt="sc_2">
+
+### External Libraries used:
+For the sliding panel I used: https://github.com/umano/AndroidSlidingUpPanel
