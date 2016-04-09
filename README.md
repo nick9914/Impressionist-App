@@ -1,5 +1,5 @@
 # Impressionist-App
-Impressionist Painter Android app created for CMSC434 class. Designed for API 15+. To install, just drag and drop APK into android device.
+Impressionist Painter Android app created for CMSC434 class. Designed for API 15+. To install, just drag and drop APK into Android device.
 
 ### Screen Shots
 <img src="https://cloud.githubusercontent.com/assets/6146961/14401604/b7be6adc-fde4-11e5-9acb-bbb0836996e8.png" alt="sc_1">
