@@ -43,14 +43,17 @@ public class ImpressionistView extends View {
     private int _defaultRadius = 25;
     private Point _lastPoint = null;
     private long _lastPointTime = -1;
-    private boolean _useMotionSpeedForBrushStrokeSize = true;
+    private boolean _useMotionSpeedForBrushStrokeSize = false;
     private Paint _paintBorder = new Paint();
     private BrushType _brushType = BrushType.Square;
     private float _minBrushRadius = 5;
     private VelocityTracker mVelocityTracker  = null;
-    private static double MAX_SPEED = 3000.0;
-    private static float MAX_BRUSH_SIZE = 50;
-    private static float MIN_BRUSH_SIZE = 5;
+    private float currBrushSize = _minBrushRadius;
+    private Random r;
+
+    private static final double MAX_SPEED = 3000.0;
+    private static final float MAX_BRUSH_SIZE = 50;
+    private static final float MIN_BRUSH_SIZE = 5;
 
     public ImpressionistView(Context context) {
         super(context);
@@ -90,6 +93,8 @@ public class ImpressionistView extends View {
         _paintBorder.setStrokeWidth(3);
         _paintBorder.setStyle(Paint.Style.STROKE);
         _paintBorder.setAlpha(50);
+
+        r = new Random();
 
         //_paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.MULTIPLY));
     }
@@ -295,10 +300,25 @@ public class ImpressionistView extends View {
     private void drawShape(float x, float y, float speedBrushSize) {
         switch (_brushType) {
             case Circle:
-                _offScreenCanvas.drawCircle(x, y, speedBrushSize, _paint);
+                if(_useMotionSpeedForBrushStrokeSize) {
+                    _offScreenCanvas.drawCircle(x, y, speedBrushSize, _paint);
+                } else {
+                    _offScreenCanvas.drawCircle(x, y, currBrushSize, _paint);
+                }
                 break;
             case Square:
-                _offScreenCanvas.drawRect(x -speedBrushSize, y - speedBrushSize, x + speedBrushSize, y + speedBrushSize, _paint);
+                if(_useMotionSpeedForBrushStrokeSize) {
+                    _offScreenCanvas.drawRect(x - speedBrushSize, y - speedBrushSize, x + speedBrushSize, y + speedBrushSize, _paint);
+                } else {
+                    _offScreenCanvas.drawRect(x - currBrushSize, y - currBrushSize, x + currBrushSize, y + currBrushSize, _paint);
+                }
+                break;
+            case Random:
+                if(r.nextBoolean()){
+                    _offScreenCanvas.drawCircle(x, y, currBrushSize, _paint);
+                } else {
+                    _offScreenCanvas.drawRect(x - currBrushSize, y - currBrushSize, x + currBrushSize, y + currBrushSize, _paint);
+                }
                 break;
         }
     }
@@ -331,6 +351,19 @@ public class ImpressionistView extends View {
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
+    }
+
+    public void speedOfMotionCheckBox(Boolean checked) {
+        if(checked) {
+            _useMotionSpeedForBrushStrokeSize = true;
+
+        } else {
+            _useMotionSpeedForBrushStrokeSize = false;
+        }
+    }
+
+    public void changeBrushSize(float size) {
+        currBrushSize = size;
     }
 }
 

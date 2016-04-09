@@ -16,10 +16,15 @@ import android.view.MenuItem;
 import android.view.View;
 import android.webkit.URLUtil;
 import android.widget.ActionMenuView;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.PopupMenu.OnMenuItemClickListener;
+import android.widget.RadioButton;
+import android.widget.SeekBar;
 import android.widget.Toast;
+
+import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -30,6 +35,10 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
 
     private static int RESULT_LOAD_IMAGE = 1;
     private  ImpressionistView _impressionistView;
+    private ImageView slidingPanelArrow;
+    private SlidingUpPanelLayout mLayout;
+    private SeekBar mbrushSizeSeekBar;
+    private CustomCircleView mShapePreview;
 
     // These images are downloaded and added to the Android Gallery when the 'Download Images' button is clicked.
     // This was super useful on the emulator where there are no images by default
@@ -58,12 +67,52 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        mbrushSizeSeekBar = (SeekBar) findViewById(R.id.seekBarBrushSize);
+        mbrushSizeSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            int progress = 0;
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progressValue, boolean fromUser) {
+                progress = progressValue;
+                mShapePreview.setmBrushSize(progress);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                _impressionistView.changeBrushSize(progress);
+                mShapePreview.setmBrushSize(progress);
+            }
+        });
+        slidingPanelArrow = (ImageView) findViewById(R.id.sliding_panel_arrow);
+        mLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
+        mLayout.addPanelSlideListener(new SlidingUpPanelLayout.PanelSlideListener() {
+            @Override
+            public void onPanelSlide(View panel, float slideOffset) {
+            }
+
+            @Override
+            public void onPanelStateChanged(View panel, SlidingUpPanelLayout.PanelState previousState, SlidingUpPanelLayout.PanelState newState) {
+                if (newState == SlidingUpPanelLayout.PanelState.EXPANDED) {
+                    slidingPanelArrow.setImageResource(R.drawable.ic_keyboard_arrow_down_white_24dp);
+                } else {
+                    slidingPanelArrow.setImageResource(R.drawable.ic_keyboard_arrow_up_white_24dp);
+                }
+            }
+        });
 
         _impressionistView = (ImpressionistView)findViewById(R.id.viewImpressionist);
         ImageView imageView = (ImageView)findViewById(R.id.viewImage);
         _impressionistView.setImageView(imageView);
+        mShapePreview = (CustomCircleView) findViewById(R.id.shape_preview);
 
+        getCurrentToolSetState();
     }
+
+
 
     public void onButtonClickClear(View v) {
         new AlertDialog.Builder(this)
@@ -213,6 +262,63 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
             }
 
         }
+    }
+
+    public void onRadioButtonClicked(View view) {
+        // Is the button now checked?
+        boolean checked = ((RadioButton) view).isChecked();
+
+        // Check which radio button was clicked
+        switch(view.getId()) {
+            case R.id.radio_circleBrush:
+                if(checked) {
+                    _impressionistView.setBrushType(BrushType.Circle);
+                    mShapePreview.setmBrushType(BrushType.Circle);
+                }
+                break;
+            case R.id.radio_squareBrush:
+                if(checked) {
+                    _impressionistView.setBrushType(BrushType.Square);
+                    mShapePreview.setmBrushType(BrushType.Square);
+                }
+                break;
+            case R.id.radio_random:
+                if(checked) {
+                    _impressionistView.setBrushType(BrushType.Random);
+                    mShapePreview.setmBrushType(BrushType.Random);
+                }
+        }
+    }
+
+    public void onCheckboxClicked(View view) {
+        // Is the view now checked?
+        boolean checked = ((CheckBox) view).isChecked();
+        _impressionistView.speedOfMotionCheckBox(checked);
+        // Check which checkbox was clicked
+        switch(view.getId()) {
+            case R.id.checkbox_speed_motion:
+                if(checked) {
+                    mbrushSizeSeekBar.setEnabled(false);
+                    mShapePreview.setEnabled(false);
+                } else {
+                    mbrushSizeSeekBar.setEnabled(true);
+                    _impressionistView.changeBrushSize(mbrushSizeSeekBar.getProgress());
+                    mShapePreview.setEnabled(true);
+
+                }
+        }
+    }
+
+    public void getCurrentToolSetState() {
+        //Radio Buttons
+        onRadioButtonClicked(findViewById(R.id.radio_circleBrush));
+        onRadioButtonClicked(findViewById(R.id.radio_squareBrush));
+        //BrushSize
+        onCheckboxClicked(findViewById(R.id.checkbox_speed_motion));
+
+
+
+
     }
 }
 

@@ -5,6 +5,7 @@ public enum BrushType {
     Circle,
     VCircle,
     Square,
+    Random,
     Line,
     CircleSplatter,
     LineSplatter
